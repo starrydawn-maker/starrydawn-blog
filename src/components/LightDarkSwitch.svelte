@@ -16,18 +16,14 @@ let mode: LIGHT_DARK_MODE = $state(AUTO_MODE);
 
 onMount(() => {
 	mode = getStoredTheme();
-	const darkModePreference = window.matchMedia("(prefers-color-scheme: dark)");
-	const changeThemeWhenSchemeChanged: Parameters<
-		typeof darkModePreference.addEventListener<"change">
-	>[1] = (_e) => {
-		applyThemeToDocument(mode);
-	};
-	darkModePreference.addEventListener("change", changeThemeWhenSchemeChanged);
+	// 每分钟检查一次时间，跨过夜间/白天切换点时自动更新主题
+	const timer = setInterval(() => {
+		if (mode === AUTO_MODE) {
+			applyThemeToDocument(mode);
+		}
+	}, 60000);
 	return () => {
-		darkModePreference.removeEventListener(
-			"change",
-			changeThemeWhenSchemeChanged,
-		);
+		clearInterval(timer);
 	};
 });
 
