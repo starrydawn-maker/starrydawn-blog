@@ -1,0 +1,82 @@
+---
+const { slug } = Astro.props;
+const emojis = [
+	{ e: "👍", label: "赞" },
+	{ e: "❤️", label: "爱心" },
+	{ e: "🎉", label: "庆祝" },
+	{ e: "👀", label: "围观" },
+	{ e: "😮", label: "惊讶" },
+	{ e: "😢", label: "难过" },
+];
+---
+
+<div class="w-full mt-6 mb-4 onload-animation" data-reactions={slug}>
+    <div class="flex items-center justify-center gap-2 md:gap-4 flex-wrap py-4">
+        {emojis.map(({ e, label }) => (
+            <button
+                type="button"
+                class="reaction-btn flex flex-col items-center gap-1.5 rounded-2xl px-4 py-3 transition hover:bg-black/5 dark:hover:bg-white/10 active:scale-90"
+                data-emoji={e}
+                title={label}
+            >
+                <span class="text-3xl md:text-4xl leading-none">{e}</span>
+                <span class="reaction-count text-sm font-medium text-black/50 dark:text-white/50">0</span>
+            </button>
+        ))}
+    </div>
+</div>
+
+<script>
+    (function () {
+        const root = document.querySelector('[data-reactions]');
+        if (!root) return;
+        const slug = root.getAttribute("data-reactions");
+        const storedKey = `reacted:${slug}`;
+        let reacted = {};
+        try {
+            reacted = JSON.parse(localStorage.getItem(storedKey) || "{}");
+        } catch {}
+
+        function setCount(btn, count) {
+            const el = btn.querySelector(".reaction-count");
+            if (el) el.textContent = String(count);
+        }
+
+        function refreshCounts() {
+            fetch(`/api/reactions?slug=${encodeURIComponent(slug)}`)
+                .then((r) => r.json())
+                .then((counts) => {
+                    root.querySelectorAll(".reaction-btn").forEach((btn) => {
+                        const emoji = btn.getAttribute("data-emoji");
+                        setCount(btn, counts[emoji] || 0);
+                        if (reacted[emoji]) btn.classList.add("opacity-60");
+                    });
+                })
+                .catch(() => {});
+        }
+
+        root.querySelectorAll(".reaction-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const emoji = btn.getAttribute("data-emoji");
+                if (reacted[emoji]) return;
+                fetch("/api/reactions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ slug, emoji }),
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        if (res.ok) {
+                            reacted[emoji] = true;
+                            localStorage.setItem(storedKey, JSON.stringify(reacted));
+                            setCount(btn, res.count);
+                            btn.classList.add("opacity-60");
+                        }
+                    })
+                    .catch(() => {});
+            });
+        });
+
+        refreshCounts();
+    })();
+</script>

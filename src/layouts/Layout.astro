@@ -152,6 +152,16 @@ const bannerOffset =
 		  data-overlayscrollbars-initialize
 	>
 		<ConfigCarrier></ConfigCarrier>
+		<script is:inline>
+			// 访客打点（仅匿名统计省份，不记录具体位置）
+			(function () {
+				try {
+					if (localStorage.getItem("visited")) return;
+					localStorage.setItem("visited", "1");
+					fetch("/api/track", { method: "POST" }).catch(function () {});
+				} catch (e) {}
+			})();
+		</script>
 		<slot />
 
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
