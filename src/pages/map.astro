@@ -11,60 +11,57 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 </MainGridLayout>
 
 <script>
-    (function () {
-        const container = document.getElementById("visitor-map");
-        if (!container) return;
+import * as echarts from "echarts";
 
-        function render(geoJson, data) {
-            const script = document.createElement("script");
-            script.src = "https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js";
-            script.onload = () => {
-                const values = Object.values(data).filter((v) => typeof v === "number");
-                const maxVal = values.length ? Math.max(...values) : 1;
-                const chart = echarts.init(container);
-                echarts.registerMap("china", geoJson);
-                chart.setOption({
-                    tooltip: {
-                        trigger: "item",
-                        formatter: (p) => `${p.name}：${p.value || 0} 位访客`,
-                    },
-                    visualMap: {
-                        min: 0,
-                        max: maxVal,
-                        left: 16,
-                        bottom: 16,
-                        text: ["多", "少"],
-                        calculable: true,
-                        inRange: { color: ["#dbeafe", "#6366f1"] },
-                        textStyle: { color: "#888" },
-                    },
-                    series: [
-                        {
-                            name: "访客",
-                            type: "map",
-                            map: "china",
-                            roam: true,
-                            label: { show: false },
-                            itemStyle: { borderColor: "#fff", areaColor: "#dbeafe" },
-                            emphasis: {
-                                label: { show: true, fontSize: 12 },
-                                itemStyle: { areaColor: "#818cf8" },
-                            },
-                            data: Object.entries(data).map(([name, value]) => ({ name, value })),
-                        },
-                    ],
-                });
-            };
-            document.head.appendChild(script);
-        }
+(function () {
+    const container = document.getElementById("visitor-map");
+    if (!container) return;
 
-        Promise.all([
-            fetch("https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json").then((r) => r.json()),
-            fetch("/api/visitors").then((r) => r.json()),
-        ])
-            .then(([geo, data]) => render(geo, data))
-            .catch(() => {
-                container.innerHTML = '<p style="text-align:center;color:#888;padding:48px;">数据加载失败，请稍后刷新</p>';
-            });
-    })();
+    function render(geoJson, data) {
+        const values = Object.values(data).filter((v) => typeof v === "number");
+        const maxVal = values.length ? Math.max(...values) : 1;
+        const chart = echarts.init(container);
+        echarts.registerMap("china", geoJson);
+        chart.setOption({
+            tooltip: {
+                trigger: "item",
+                formatter: (p) => `${p.name}：${p.value || 0} 位访客`,
+            },
+            visualMap: {
+                min: 0,
+                max: maxVal,
+                left: 16,
+                bottom: 16,
+                text: ["多", "少"],
+                calculable: true,
+                inRange: { color: ["#dbeafe", "#6366f1"] },
+                textStyle: { color: "#888" },
+            },
+            series: [
+                {
+                    name: "访客",
+                    type: "map",
+                    map: "china",
+                    roam: true,
+                    label: { show: false },
+                    itemStyle: { borderColor: "#fff", areaColor: "#dbeafe" },
+                    emphasis: {
+                        label: { show: true, fontSize: 12 },
+                        itemStyle: { areaColor: "#818cf8" },
+                    },
+                    data: Object.entries(data).map(([name, value]) => ({ name, value })),
+                },
+            ],
+        });
+    }
+
+    Promise.all([
+        fetch("/geo/china.json").then((r) => r.json()),
+        fetch("/api/visitors").then((r) => r.json()),
+    ])
+        .then(([geo, data]) => render(geo, data))
+        .catch(() => {
+            container.innerHTML = '<p style="text-align:center;color:#888;padding:48px;">数据加载失败，请稍后刷新</p>';
+        });
+})();
 </script>
