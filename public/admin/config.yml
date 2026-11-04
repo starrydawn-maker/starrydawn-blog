@@ -1,0 +1,23 @@
+backend:
+  name: github
+  repo: starrydawn-maker/starrydawn-blog
+  branch: main
+
+media_folder: public/images
+public_folder: /images
+
+collections:
+  - name: posts
+    label: 文章
+    folder: src/content/posts
+    create: true
+    format: yaml-frontmatter
+    slug: "{{slug}}"
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 发布日期, name: published, widget: datetime, date_format: YYYY-MM-DD, time_format: false }
+      - { label: 描述, name: description, widget: text, required: false }
+      - { label: 标签, name: tags, widget: list, required: false }
+      - { label: 分类, name: category, widget: string, required: false }
+      - { label: 草稿, name: draft, widget: boolean, default: false, required: false }
+      - { label: 正文, name: body, widget: markdown }
