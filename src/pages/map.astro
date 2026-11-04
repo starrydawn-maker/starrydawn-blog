@@ -14,54 +14,73 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 import * as echarts from "echarts";
 
 (function () {
-    const container = document.getElementById("visitor-map");
-    if (!container) return;
+    function renderMap() {
+        const container = document.getElementById("visitor-map");
+        if (!container || container.dataset.rendered) return;
+        container.dataset.rendered = "1";
 
-    function render(geoJson, data) {
-        const values = Object.values(data).filter((v) => typeof v === "number");
-        const maxVal = values.length ? Math.max(...values) : 1;
-        const chart = echarts.init(container);
-        echarts.registerMap("china", geoJson);
-        chart.setOption({
-            tooltip: {
-                trigger: "item",
-                formatter: (p) => `${p.name}：${p.value || 0} 位访客`,
-            },
-            visualMap: {
-                min: 0,
-                max: maxVal,
-                left: 16,
-                bottom: 16,
-                text: ["多", "少"],
-                calculable: true,
-                inRange: { color: ["#dbeafe", "#6366f1"] },
-                textStyle: { color: "#888" },
-            },
-            series: [
-                {
-                    name: "访客",
-                    type: "map",
-                    map: "china",
-                    roam: true,
-                    label: { show: false },
-                    itemStyle: { borderColor: "#fff", areaColor: "#dbeafe" },
-                    emphasis: {
-                        label: { show: true, fontSize: 12 },
-                        itemStyle: { areaColor: "#818cf8" },
-                    },
-                    data: Object.entries(data).map(([name, value]) => ({ name, value })),
+        function draw(geoJson, data) {
+            const values = Object.values(data).filter((v) => typeof v === "number");
+            const maxVal = values.length ? Math.max(...values) : 1;
+            const existing = echarts.getInstanceByDom(container);
+            if (existing) existing.dispose();
+            const chart = echarts.init(container);
+            echarts.registerMap("china", geoJson);
+            chart.setOption({
+                tooltip: {
+                    trigger: "item",
+                    formatter: (p) => `${p.name}：${p.value || 0} 位访客`,
                 },
-            ],
-        });
+                visualMap: {
+                    min: 0,
+                    max: maxVal,
+                    left: 16,
+                    bottom: 16,
+                    text: ["多", "少"],
+                    calculable: true,
+                    inRange: { color: ["#dbeafe", "#6366f1"] },
+                    textStyle: { color: "#888" },
+                },
+                series: [
+                    {
+                        name: "访客",
+                        type: "map",
+                        map: "china",
+                        roam: true,
+                        label: { show: false },
+                        itemStyle: { borderColor: "#fff", areaColor: "#dbeafe" },
+                        emphasis: {
+                            label: { show: true, fontSize: 12 },
+                            itemStyle: { areaColor: "#818cf8" },
+                        },
+                        data: Object.entries(data).map(([name, value]) => ({ name, value })),
+                    },
+                ],
+            });
+        }
+
+        Promise.all([
+            fetch("/geo/china.json").then((r) => r.json()),
+            fetch("/api/visitors").then((r) => r.json()),
+        ])
+            .then(([geo, data]) => draw(geo, data))
+            .catch(() => {
+                container.innerHTML = '<p style="text-align:center;color:#888;padding:48px;">数据加载失败，请稍后刷新</p>';
+            });
     }
 
-    Promise.all([
-        fetch("/geo/china.json").then((r) => r.json()),
-        fetch("/api/visitors").then((r) => r.json()),
-    ])
-        .then(([geo, data]) => render(geo, data))
-        .catch(() => {
-            container.innerHTML = '<p style="text-align:center;color:#888;padding:48px;">数据加载失败，请稍后刷新</p>';
-        });
+    // 整页加载时直接渲染
+    renderMap();
+
+    // Swup 页面内切换时，内容替换后重新渲染
+    function setupSwup() {
+        if (window.swup && window.swup.hooks) {
+            window.swup.hooks.on("content:replace", renderMap);
+            window.swup.hooks.on("page:view", renderMap);
+        } else {
+            document.addEventListener("swup:enable", setupSwup);
+        }
+    }
+    setupSwup();
 })();
 </script>
