@@ -1,5 +1,5 @@
 ---
-title: Database
+title: Database Chapter-1
 published: 2026-11-06
 description: Midterm review
 tags:
